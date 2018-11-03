@@ -73,4 +73,4 @@ summary = summarize.processText(cleanedText, numberOfSentences)
 print (summary)
 
 countTime =  round(time.time() - startTime)
-print ("Time taken:", countTime)
+print ("Time taken:", str(countTime) + "s")
