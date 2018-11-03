@@ -7,31 +7,32 @@ import nltk.data
 import codecs
 import sys
 import re
+import time
 
 class Summarizer:
-    # TODO: Change to Python 3 syntax
-    def reorderSentences(self, sentences, input):
-        # sentences.sort(key=lambda s1, s2:
-        #                       input.find(s1) - input.find(s2))
+    def reorderSentences(self, sentences, originalSentences):
+        sentences.sort(key=lambda s1: originalSentences.find(s1))
         return sentences
 
-    def getSummarizedText(self, input, num_sentences):
+    def getSummarizedText(self, input, numberOfSentences):
+
+        unwantedSentence = ['Chapter']
+
         # Calculate the frequency of each word in the input
         tokenizer = RegexpTokenizer('\w+')
         baseWords = [word.lower() for word in tokenizer.tokenize(input)]
-        baseWordsWithoutStopWords = [word for word in baseWords if word not in stopwords.words()]
+        baseWordsWithoutStopWords = [word for word in baseWords if word not in stopwords.words() and unwantedSentence]
+        # Frequency Distribution
         wordFrequencies = FreqDist(baseWordsWithoutStopWords)
         mostFrequentWords = [pair[0] for pair in wordFrequencies.keys()]
-        print ("frequent", mostFrequentWords)
+
         # Split input into sentences in lowercase to be analysed by tokenizers/punkt
-        # Actual_sentences is used in the results
-        # so capitalization will be correct.
         sentDetector = nltk.data.load('tokenizers/punkt/english.pickle')
         sentencesRaw = sentDetector.tokenize(input)
         sentencesToBeAnalyzed = [sentence.lower() for sentence in sentencesRaw]
 
-        # Iterate over the most frequent words, and add the first sentence
-        # that inclues each word to the result.
+        # For each of most frequent words, and add the first sentence
+        # that inclues each word to the output result.
         outputSentences = []
 
         for word in mostFrequentWords:
@@ -41,9 +42,9 @@ class Summarizer:
                         and sentencesRaw[i] not in outputSentences):
                     outputSentences.append(sentencesRaw[i])
                     break
-                if len(outputSentences) >= num_sentences:
+                if len(outputSentences) >= numberOfSentences:
                     break
-            if len(outputSentences) >= num_sentences:
+            if len(outputSentences) >= numberOfSentences:
                 break
 
         # sort the output sentences back to their original order
@@ -53,6 +54,7 @@ class Summarizer:
         return " ".join(self.getSummarizedText(input, numberOfSentences))
 
 # Take in filename as argument
+startTime = time.time()
 args = sys.argv
 filename = args[1]
 file = codecs.open(filename, encoding='utf-8')
@@ -64,8 +66,11 @@ denoise = Denoise()
 cleanedText = denoise.denoiseText(articleText)
 
 # Summarize cleaned article
-numberOfSentences = 3
+numberOfSentences = 2
 summary = summarize.processText(cleanedText, numberOfSentences)
 
 # Print summary in console
 print (summary)
+
+countTime =  round(time.time() - startTime)
+print ("Time taken:", countTime)
