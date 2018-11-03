@@ -19,4 +19,8 @@ Build a text summarizer using [NLTK](https://www.nltk.org/) for Citi x GITSG Dat
 
 ### Run the program
 
-- Run command: `python Summarizer.py Sample.txt`
+- Run command: `python Summarize.py Sample.txt`
+
+## Thoughts
+
+- WE HAD SO MUCH FUN.
