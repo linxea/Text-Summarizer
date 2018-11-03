@@ -2,6 +2,7 @@
 from nltk.probability import FreqDist
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
+from Denoise import Denoise
 import nltk.data
 import codecs
 import sys
@@ -15,61 +16,40 @@ class Summarizer:
         return sentences
 
     def getSummarizedText(self, input, num_sentences):
+        # Calculate the frequency of each word in the input
         tokenizer = RegexpTokenizer('\w+')
+        baseWords = [word.lower() for word in tokenizer.tokenize(input)]
+        baseWordsWithoutStopWords = [word for word in baseWords if word not in stopwords.words()]
+        wordFrequencies = FreqDist(baseWordsWithoutStopWords)
+        mostFrequentWords = [pair[0] for pair in wordFrequencies.keys()]
 
-        # get the frequency of each word in the input
-        base_words = [word.lower()
-                      for word in tokenizer.tokenize(input)]
-        words = [word for word in base_words if word not in stopwords.words()]
-        word_frequencies = FreqDist(words)
-
-        # now create a set of the most frequent words
-        most_frequent_words = [pair[0] for pair in
-                               word_frequencies.keys()]
-
-        # break the input up into sentences.  working_sentences is used
+        # Split input into sentences.  working_sentences is used
         # for the analysis, but actual_sentences is used in the results
         # so capitalization will be correct.
-        sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
-        actual_sentences = sent_detector.tokenize(input)
-        working_sentences = [sentence.lower()
-                             for sentence in actual_sentences]
+        sentDetector = nltk.data.load('tokenizers/punkt/english.pickle')
+        sentencesRaw = sentDetector.tokenize(input)
+        sentencesToBeAnalyzed = [sentence.lower() for sentence in sentencesRaw]
 
-        # iterate over the most frequent words, and add the first sentence
+        # Iterate over the most frequent words, and add the first sentence
         # that inclues each word to the result.
-        output_sentences = []
+        outputSentences = []
 
-        for word in most_frequent_words:
-            for i in range(0, len(working_sentences)):
-                if (word in working_sentences[i]
-                        and actual_sentences[i] not in output_sentences):
-                    output_sentences.append(actual_sentences[i])
+        for word in mostFrequentWords:
+            for i in range(len(sentencesToBeAnalyzed)):
+                if (word in sentencesToBeAnalyzed[i]
+                        and sentencesRaw[i] not in outputSentences):
+                    outputSentences.append(sentencesRaw[i])
                     break
-                if len(output_sentences) >= num_sentences:
+                if len(outputSentences) >= num_sentences:
                     break
-            if len(output_sentences) >= num_sentences:
+            if len(outputSentences) >= num_sentences:
                 break
 
         # sort the output sentences back to their original order
-        return self.reorderSentences(output_sentences, input)
+        return self.reorderSentences(outputSentences, input)
 
     def processText(self, input, numberOfSentences):
         return " ".join(self.getSummarizedText(input, numberOfSentences))
-
-    def cleanArticleText(self,text):
-        # Remove unwanted characters
-        text = re.sub(r'https?:\/\/.*[\r\n]*', '', text, flags=re.MULTILINE)
-        text = re.sub(r'\<a href', ' ', text)
-        text = re.sub(r'&amp;', '', text)
-        # text = re.sub(r'[_"\-;%()|+&=*%.,!?:#$@\[\]/]', ' ', text)
-        text = re.sub(r'[_"\-;%()|+&=*%:#$@\[\]/]', ' ', text)
-        text = re.sub(r'<br />', ' ', text)
-        text = re.sub(r'\'', ' ', text)
-        text = re.sub(r'[^\x00-\x7F]', ' ', text)
-        # Remove unwanted spacings
-        text = re.sub(r'\s+', ' ', text)
-        return text
-
 
 # Take in filename as argument
 args = sys.argv
@@ -79,9 +59,12 @@ articleText = file.read()
 
 # Clean article content
 summarize = Summarizer()
-cleanedText = summarize.cleanArticleText(articleText)
+denoise = Denoise()
+cleanedText = denoise.denoiseText(articleText)
 
-numberOfSentences = 1
+# Summarize cleaned article
+numberOfSentences = 3
 summary = summarize.processText(cleanedText, numberOfSentences)
 
+# Print summary in console
 print (summary)
